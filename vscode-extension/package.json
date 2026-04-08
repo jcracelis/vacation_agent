@@ -1,0 +1,84 @@
+{
+  "name": "vacation-agent",
+  "displayName": "Vacation Agent",
+  "description": "AI-powered adult-only vacation planner with verified sources",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vacationAgent.startPlanning",
+        "title": "Vacation Agent: Start Planning"
+      },
+      {
+        "command": "vacationAgent.clearChat",
+        "title": "Vacation Agent: Clear Chat"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vacation-agent",
+          "title": "Vacation Agent",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "vacation-agent": [
+        {
+          "type": "webview",
+          "id": "vacationAgent.chatView",
+          "name": "Vacation Planner"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Vacation Agent",
+      "properties": {
+        "vacationAgent.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Path to Python executable",
+          "order": 1
+        },
+        "vacationAgent.projectPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to vacation_agent project directory",
+          "order": 2
+        },
+        "vacationAgent.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API Key (optional, uses env var if empty)",
+          "order": 3
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.50.0"
+  },
+  "dependencies": {
+    "child_process": "^1.0.2"
+  }
+}
