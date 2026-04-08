@@ -1,4 +1,8 @@
-"""Data models for the Vacation Agent."""
+"""Data models for the Vacation Agent.
+
+Note: Primary models are defined in src/agent.py and imported as needed.
+This file contains additional models and enumerations.
+"""
 
 from enum import Enum
 from typing import Optional
@@ -46,16 +50,6 @@ class TripDetails(BaseModel):
     special_requests: list[str] = Field(default_factory=list)
 
 
-class Activity(BaseModel):
-    """Model for an activity."""
-    name: str
-    description: str
-    duration_hours: float
-    cost: float
-    location: str
-    category: str
-
-
 class Accommodation(BaseModel):
     """Model for accommodation."""
     name: str
@@ -64,3 +58,5 @@ class Accommodation(BaseModel):
     rating: Optional[float] = None
     amenities: list[str] = Field(default_factory=list)
     location: str
+    tripadvisor_url: Optional[str] = Field(None, description="TripAdvisor review URL")
+    adult_only: bool = Field(True, description="Adults-only property")

@@ -1,13 +1,22 @@
 # Vacation Agent 🌴
 
-An AI-powered vacation planning agent that helps you discover destinations, plan itineraries, and organize your travel details.
+An AI-powered vacation planning agent specializing in **adult-only vacations** with verified information from trusted sources.
 
-## Features
+## Key Features
 
-- 🌍 **Destination Discovery** - Find personalized vacation recommendations
-- 📅 **Itinerary Planning** - Generate day-by-day travel plans
-- 💰 **Budget Estimation** - Get cost estimates for trips
-- ✈️ **Travel Assistance** - Helpful tips and information for your journey
+- 🌍 **Verified Destination Recommendations** - All suggestions grounded in TripAdvisor reviews
+- 📅 **Custom Itineraries** - Personalized day-by-day plans for adult travelers
+- ✈️ **Verified Transportation** - Non-stop flights (aa.com, southwest.com, delta.com) and rail (amtrak.com) only
+- 💰 **Accurate Budget Estimates** - All pricing double-checked from approved sources
+- 🔍 **Source Validation** - No hallucination; all information validated before presentation
+- 💬 **Warm, Personal Service** - Clarifying questions to understand your preferences
+
+## Trusted Sources
+
+The agent uses **ONLY** these verified sources:
+- **Reviews:** tripadvisor.com
+- **Airlines:** aa.com, southwest.com, delta.com (non-stop flights only)
+- **Rail:** amtrak.com
 
 ## Project Structure
 
@@ -53,9 +62,30 @@ pip install -r requirements.txt
 ```python
 from src.agent import VacationAgent
 
+# Initialize the agent
 agent = VacationAgent()
-response = agent.plan_destination("beach", 7, 2000)
-print(response)
+
+# Send greeting and ask clarifying questions
+greeting = agent.greet()
+print(greeting)
+
+# Collect preferences
+agent.collect_preferences(
+    vacation_type="romantic beach getaway",
+    duration=7,
+    budget=3000,
+    origin="Chicago, IL",
+    travel_dates="May 2026"
+)
+
+# Plan a destination (verified via TripAdvisor)
+destination = agent.plan_destination("beach", 7, 3000)
+
+# Find transportation (non-stop flights and rail only)
+transport = agent.find_transportation("Chicago", "Miami", "2026-05-15")
+
+# Validate all suggestions before presenting
+validation = agent.validate_suggestions([destination])
 ```
 
 ## Development

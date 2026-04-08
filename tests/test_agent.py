@@ -1,8 +1,8 @@
 """Tests for the Vacation Agent."""
 
 import pytest
-from src.agent import VacationAgent
-from src.models import Traveler, TripDetails, TravelStyle, DestinationRecommendation, Itinerary
+from src.agent import VacationAgent, DestinationRecommendation, Transportation, Activity
+from src.models import Traveler, TripDetails, TravelStyle
 from src.utils import load_config, format_currency, split_budget
 
 
@@ -16,33 +16,111 @@ class TestVacationAgent:
     def test_init(self):
         """Test agent initialization."""
         assert self.agent.model_name == "gpt-4"
-        assert self.agent.conversation_history == []
+        assert len(self.agent.conversation_history) == 1  # System prompt
+        assert self.agent.conversation_history[0]["role"] == "system"
+        assert self.agent.user_preferences == {}
+        assert "tripadvisor.com" in self.agent.APPROVED_REVIEW_SOURCES
+        assert "aa.com" in self.agent.APPROVED_AIRLINES
+    
+    def test_greet(self):
+        """Test greeting functionality."""
+        greeting = self.agent.greet()
+        assert isinstance(greeting, str)
+        assert len(greeting) > 0
+        assert len(self.agent.conversation_history) == 2  # System + greeting
+    
+    def test_ask_clarifying_questions(self):
+        """Test clarifying questions."""
+        questions = self.agent.ask_clarifying_questions()
+        assert isinstance(questions, str)
+        assert len(questions) > 0
+    
+    def test_collect_preferences(self):
+        """Test preference collection."""
+        prefs = self.agent.collect_preferences(
+            vacation_type="beach",
+            duration=7,
+            budget=3000,
+            origin="Chicago",
+            travel_dates="May 2026"
+        )
+        assert prefs["vacation_type"] == "beach"
+        assert prefs["duration"] == 7
+        assert prefs["budget"] == 3000
+        assert prefs["origin"] == "Chicago"
+        assert prefs["travel_dates"] == "May 2026"
+    
+    def test_validate_source_approved(self):
+        """Test source validation for approved sources."""
+        assert self.agent.validate_source("https://www.tripadvisor.com/Attraction_Review") == True
+        assert self.agent.validate_source("https://www.aa.com/flights") == True
+        assert self.agent.validate_source("https://www.southwest.com") == True
+        assert self.agent.validate_source("https://www.delta.com") == True
+        assert self.agent.validate_source("https://www.amtrak.com") == True
+    
+    def test_validate_source_unapproved(self):
+        """Test source validation rejects unapproved sources."""
+        assert self.agent.validate_source("https://www.expedia.com") == False
+        assert self.agent.validate_source("https://www.booking.com") == False
+        assert self.agent.validate_source("https://www.yelp.com") == False
     
     def test_plan_destination(self):
         """Test destination planning."""
-        result = self.agent.plan_destination("beach", 7, 2000)
+        result = self.agent.plan_destination("beach", 7, 3000)
         assert isinstance(result, DestinationRecommendation)
-        assert result.destination is not None
-        assert result.estimated_cost <= 2000
+        assert result.tripadvisor_url is not None
+        assert self.agent.validate_source(result.tripadvisor_url) == True
+    
+    def test_find_transportation(self):
+        """Test transportation finding."""
+        transport = self.agent.find_transportation("Chicago", "Miami", "2026-05-15")
+        assert len(transport) > 0
+        assert isinstance(transport[0], Transportation)
+        assert transport[0].is_nonstop == True
+        assert self.agent.validate_source(transport[0].booking_url) == True
+    
+    def test_suggest_activities(self):
+        """Test activity suggestions."""
+        activities = self.agent.suggest_activities("Cancun", "beach", 7)
+        assert len(activities) > 0
+        assert isinstance(activities[0], Activity)
+        assert activities[0].suitable_for_adults_only == True
     
     def test_generate_itinerary(self):
         """Test itinerary generation."""
-        itinerary = self.agent.generate_itinerary("Bali", 7)
+        itinerary = self.agent.generate_itinerary("Cancun", 7)
         assert len(itinerary) == 7
-        assert all(isinstance(day, Itinerary) for day in itinerary)
+        assert all(day.day_number == i+1 for i, day in enumerate(itinerary))
     
     def test_estimate_budget(self):
         """Test budget estimation."""
-        budget = self.agent.estimate_budget("Bali", 7, 2)
+        budget = self.agent.estimate_budget("Cancun", 7, 2)
         assert isinstance(budget, dict)
         assert "total" in budget
         assert "flights" in budget
+        assert "rail_alternative" in budget
+    
+    def test_validate_suggestions(self):
+        """Test suggestion validation."""
+        dest = DestinationRecommendation(
+            destination="Cancun",
+            country="Mexico",
+            description="Beach paradise",
+            estimated_cost=2000,
+            duration_days=7,
+            highlights=[],
+            best_time_to_visit="Winter",
+            tripadvisor_url="https://www.tripadvisor.com"
+        )
+        validation = self.agent.validate_suggestions([dest])
+        assert validation["validated"] == True
+        assert len(validation["sources_verified"]) > 0
     
     def test_chat(self):
         """Test chat functionality."""
         response = self.agent.chat("Hello!")
         assert isinstance(response, str)
-        assert len(self.agent.conversation_history) == 2
+        assert len(self.agent.conversation_history) == 3  # System + user + assistant
 
 
 class TestModels:
