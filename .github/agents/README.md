@@ -22,7 +22,7 @@ The agent uses **ONLY** these verified sources:
 ## Project Structure
 
 ```
-vacation_agent/
+.github/agents/
 ├── src/                    # Source code
 │   ├── __init__.py
 │   ├── agent.py            # Main agent logic
@@ -34,18 +34,24 @@ vacation_agent/
 ├── tests/                  # Test files
 │   ├── __init__.py
 │   └── test_agent.py
+├── examples/               # Usage examples
+│   └── basic_usage.py
 ├── notebooks/              # Jupyter notebooks for exploration
 ├── docs/                   # Documentation
 ├── scripts/                # Utility scripts
 ├── vscode-extension/       # VS Code extension
 │   ├── src/                # TypeScript source files
+│   ├── out/                # Compiled JavaScript
 │   ├── media/              # UI assets (CSS, JS, icons)
 │   ├── package.json        # Extension manifest
 │   └── README.md           # Extension-specific docs
+├── validate.sh             # Linux/WSL validation script
+├── test_agent.bat          # Windows test script
+├── setup-vscode-extension.sh # Automated setup script
 ├── .gitignore
 ├── requirements.txt        # Python dependencies
 ├── setup.py                # Package setup
-└── README.md
+└── README.md               # This file
 ```
 
 ## Installation
@@ -61,11 +67,11 @@ vacation_agent/
 
 ```bash
 # From the repository root
-cd ..
+cd ../../
 
 # Or clone the repository
 git clone https://github.com/jcracelis/vacation_agent.git
-cd vacation_agent/agents
+cd vacation_agent/.github/agents
 
 # Create a virtual environment
 python -m venv venv
@@ -120,14 +126,21 @@ npm run compile
 
    | Setting | Value | Description |
    |---------|-------|-------------|
-   | **Vacation Agent: Project Path** | `C:\Users\racel\github\vacation_agent\.github\agents` | Full path to this repository |
-   | **Vacation Agent: Python Path** | `C:\Program Files\Python314\python.exe` | Your Python executable path |
+   | **Vacation Agent: Project Path** | Path to this `agents/` directory | Full path to this folder |
+   | **Vacation Agent: Python Path** | `python`, `python3`, or full path | Your Python executable |
    | **Vacation Agent: OpenAI API Key** | Your API key (optional) | Or set `OPENAI_API_KEY` env var |
 
-   **Example Configuration:**
+   **Windows Example:**
    ```
-   Project Path: C:\Users\racel\github\vacation_agent\.github\agents
-   Python Path: C:\Program Files\Python314\python.exe
+   Project Path: C:\Users\yourname\github\vacation_agent\.github\agents
+   Python Path: C:\Program Files\Python312\python.exe
+   OpenAI API Key: sk-your-key-here (optional)
+   ```
+
+   **Linux/Mac Example:**
+   ```
+   Project Path: /home/user/github/vacation_agent/.github/agents
+   Python Path: python3
    OpenAI API Key: sk-your-key-here (optional)
    ```
 
@@ -136,8 +149,8 @@ npm run compile
    - Add:
    ```json
    {
-     "vacationAgent.projectPath": "C:\\Users\\racel\\github\\vacation_agent\\.github\\agents",
-     "vacationAgent.pythonPath": "C:\\Program Files\\Python314\\python.exe",
+     "vacationAgent.projectPath": "/path/to/vacation_agent/.github/agents",
+     "vacationAgent.pythonPath": "python3",
      "vacationAgent.openaiApiKey": "sk-your-api-key-here"
    }
    ```
@@ -177,7 +190,7 @@ set OPENAI_API_KEY=sk-your-api-key-here
 # Windows (PowerShell)
 $env:OPENAI_API_KEY="sk-your-api-key-here"
 
-# Or add to .env file in vacation_agent root:
+# Or add to .env file in agents root:
 echo "OPENAI_API_KEY=sk-your-api-key-here" > .env
 ```
 
@@ -229,6 +242,31 @@ transport = agent.find_transportation("Chicago", "Miami", "2026-05-15")
 validation = agent.validate_suggestions([destination])
 ```
 
+### Example Scripts
+
+Check out `examples/basic_usage.py` for a complete demonstration of all agent capabilities:
+
+```bash
+python examples/basic_usage.py
+```
+
+## Helper Scripts
+
+| Script | Platform | Purpose |
+|--------|----------|---------|
+| **validate.sh** | Linux/WSL | Comprehensive code validation (8-point check) |
+| **test_agent.bat** | Windows | Run full test suite from CMD |
+| **setup-vscode-extension.sh** | Linux/WSL | Automated VS Code extension setup |
+
+**Run validation:**
+```bash
+# Linux/WSL
+bash validate.sh
+
+# Windows (from CMD)
+test_agent.bat
+```
+
 ## Troubleshooting
 
 ### Python Not Found
@@ -239,7 +277,7 @@ validation = agent.validate_suggestions([destination])
 1. Open VS Code Settings (`Ctrl+,` / `Cmd+,`)
 2. Search for "Vacation Agent: Python Path"
 3. Set the correct path:
-   - Windows: `python` or `C:\Python310\python.exe`
+   - Windows: `python` or `C:\Program Files\Python312\python.exe`
    - Mac/Linux: `python3` or `/usr/bin/python3`
 
 ### Project Path Not Found
@@ -249,8 +287,11 @@ validation = agent.validate_suggestions([destination])
 **Solution:**
 1. Open VS Code Settings
 2. Search for "Vacation Agent: Project Path"
-3. Set the **absolute path** to your vacation_agent directory
-4. Example: `C:\Users\racel\github\vacation_agent\.github\agents`
+3. Set the **absolute path** to the `agents/` directory
+4. Examples:
+   - Windows: `C:\Users\yourname\github\vacation_agent\.github\agents`
+   - Linux: `/home/user/github/vacation_agent/.github/agents`
+   - Mac: `/Users/yourname/github/vacation_agent/.github/agents`
 
 ### No Response from Agent
 
@@ -300,8 +341,17 @@ npm run compile
 # Run tests
 pytest tests/
 
+# Run with coverage
+pytest tests/ --cov=src --cov-report=html
+
 # Run linting
 flake8 src/
+
+# Type checking
+mypy src/
+
+# Format code
+black src/
 ```
 
 ### VS Code Extension
@@ -317,6 +367,16 @@ npm run compile
 
 # Lint
 npm run lint
+```
+
+### Running Validation
+
+```bash
+# Linux/WSL - comprehensive 8-point validation
+bash validate.sh
+
+# Windows - full test suite
+test_agent.bat
 ```
 
 ## License
