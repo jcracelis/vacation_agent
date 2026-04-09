@@ -261,20 +261,37 @@ class VacationAgent:
         """Check if the LLM provider is ready to respond.
 
         For cloud providers: API key must be configured.
-        For Ollama: Always considered available (connectivity checked at call time).
+        For Ollama: Tests actual connectivity to the server.
 
         Returns:
             True if provider can be reached, False otherwise
         """
         provider_config = self.get_provider_config()
 
-        # Ollama: no API key needed, always considered available
+        # Ollama: test actual connectivity
         if not provider_config.get("requires_api_key"):
-            return True
+            return self._check_ollama_alive()
 
         # Cloud providers: need a valid API key
         api_key = self.get_api_key()
         return api_key is not None and len(api_key) > 0
+
+    def _check_ollama_alive(self) -> bool:
+        """Check if the Ollama server is reachable.
+
+        Returns:
+            True if Ollama responds, False otherwise
+        """
+        try:
+            import urllib.request
+            import urllib.error
+
+            url = f"{self.ollama_base_url}/api/tags"
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                return resp.status == 200
+        except Exception:
+            return False
 
     # ─── LLM Communication ────────────────────────────────────────────────
 
@@ -722,8 +739,19 @@ class VacationAgent:
             f"Thank you for your message! I'm reviewing verified sources from TripAdvisor "
             f"and approved carrier websites to provide you with accurate, double-checked information. "
             f"Using {self.provider} ({self.model_name}). "
-            f"Note: Configure your API key or start Ollama for full LLM responses."
         )
+
+        if self.provider == "ollama" and not self._check_ollama_alive():
+            response += (
+                f"\n\n⚠️ Ollama is not running. To get full AI responses:\n"
+                f"1. Start Ollama: `ollama serve`\n"
+                f"2. Pull a model: `ollama pull llama3`\n"
+                f"3. Try again!"
+            )
+        elif not self.is_llm_available():
+            response += (
+                f"\n\nConfigure an API key in VS Code settings for full LLM responses."
+            )
 
         self.conversation_history.append({"role": "assistant", "content": response})
         return response

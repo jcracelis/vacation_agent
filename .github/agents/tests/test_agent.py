@@ -115,9 +115,17 @@ class TestVacationAgent:
         assert agent.is_llm_available() is True
 
     def test_is_llm_available_ollama(self):
-        """Test Ollama always available (no API key needed)."""
+        """Test Ollama availability check (will be False if server not running)."""
         agent = VacationAgent(provider="ollama")
-        assert agent.is_llm_available() is True
+        # This tests connectivity, not just config
+        result = agent.is_llm_available()
+        # Could be True (server running) or False (server not running) — both valid
+        assert isinstance(result, bool)
+
+    def test_check_ollama_alive_not_running(self):
+        """Test Ollama connectivity check returns False when server is down."""
+        agent = VacationAgent(provider="ollama", ollama_base_url="http://localhost:99999")
+        assert agent._check_ollama_alive() is False
 
     # ─── Provider Auto-Detection ─────────────────────────────────────────
 
