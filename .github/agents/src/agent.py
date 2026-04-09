@@ -465,11 +465,30 @@ class VacationAgent:
     def validate_source(self, url: str) -> bool:
         """Validate that a URL is from an approved source.
 
+        This method checks whether the provided URL belongs to one of the
+        approved sources for vacation information. Approved sources include:
+        - TripAdvisor (tripadvisor.com) for reviews and activities
+        - Major airlines: aa.com (American Airlines), southwest.com (Southwest),
+          delta.com (Delta Air Lines) for non-stop flight booking
+        - Rail transportation: amtrak.com (Amtrak)
+
+        The validation is case-insensitive and performs substring matching
+        against the approved source domains.
+
         Args:
-            url: URL to validate
+            url: URL to validate. Can be any string containing a domain
+                 (e.g., "https://www.tripadvisor.com/ShowUserReviews")
 
         Returns:
-            True if from approved source, False otherwise
+            True if the URL matches any approved source domain,
+            False otherwise or if the URL is empty/None
+
+        Example:
+            >>> agent = VacationAgent()
+            >>> agent.validate_source("https://www.tripadvisor.com/Hotel_Review")
+            True
+            >>> agent.validate_source("https://www.booking.com/hotel")
+            False
         """
         url_lower = url.lower()
 
@@ -679,13 +698,38 @@ class VacationAgent:
     def validate_suggestions(self, suggestions: list) -> dict:
         """Validate all suggestions before presenting to user.
 
-        Ensures no hallucinated information and all data is from approved sources.
+        This method ensures that all suggestions are grounded in approved
+        sources and contain no hallucinated information. It iterates through
+        the provided suggestions list, checking for TripAdvisor URLs and
+        validating them against the approved source list via validate_source().
+
+        The validation results include:
+        - sources_verified: List of URLs that passed validation
+        - pending_verification: List of suggestions without verifiable sources
+        - warnings: List of warnings for unverified or invalid sources
 
         Args:
-            suggestions: List of suggestions to validate
+            suggestions: List of suggestion objects to validate. Objects may
+                        be Pydantic models (e.g., Activity, Itinerary) or
+                        any objects with a tripadvisor_url attribute
 
         Returns:
-            Validation results with confidence scores
+            Dictionary with validation results containing the following keys:
+            - validated (bool): True if all suggestions with URLs passed validation
+            - sources_verified (list[str]): List of verified source URLs
+            - pending_verification (list[str]): List of suggestions lacking
+              verifiable source information
+            - warnings (list[str]): List of warning messages for unverified
+              or invalid sources
+
+        Example:
+            >>> agent = VacationAgent()
+            >>> activity = Activity(name="Snorkeling", tripadvisor_url="https://www.tripadvisor.com/Attraction")
+            >>> result = agent.validate_suggestions([activity])
+            >>> result["validated"]
+            True
+            >>> result["sources_verified"]
+            ['https://www.tripadvisor.com/Attraction']
         """
         validation_results = {
             "validated": True,

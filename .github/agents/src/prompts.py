@@ -1,4 +1,29 @@
-"""Prompt templates for the Vacation Agent."""
+"""Prompt templates for the Vacation Agent.
+
+This module defines all prompt templates used by the Vacation Agent for
+user interaction, including the core system prompt that establishes
+validation behavior and source verification rules.
+
+Validation-Related CONTENT IN SYSTEM_PROMPT:
+- "Validate all suggestions before presenting them" — requires pre-presentation validation
+- "Always double-check the information before sharing it" — prevents hallucination
+- "DO NOT hallucinate information" — explicit anti-hallucination directive
+- "Always verify information accuracy before presenting it" — accuracy requirement
+
+SOURCE REQUIREMENTS IN SYSTEM_PROMPT:
+- tripadvisor.com — required for all destination reviews and ratings
+- aa.com, southwest.com, delta.com — approved airline booking sources
+- amtrak.com — approved rail booking source
+- "non-stop" — only non-stop flights are considered
+
+Prompt Templates:
+    SYSTEM_PROMPT: Core agent behavior with validation and source rules
+    GREETING_PROMPT: Initial welcome message with preference questions
+    DESTINATION_PROMPT: Destination recommendation template with parameters
+    ITINERARY_PROMPT: Day-by-day itinerary generation template
+    BUDGET_PROMPT: Budget cost estimation template
+    TRAVEL_TIPS_PROMPT: Pre-travel advice template
+"""
 
 # Core system prompt - defines the agent's behavior
 SYSTEM_PROMPT = """You are a travel guide and vacation planner specializing in adult only vacations.

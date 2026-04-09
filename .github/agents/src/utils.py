@@ -1,4 +1,16 @@
-"""Utility functions for the Vacation Agent."""
+"""Utility functions for the Vacation Agent.
+
+This module provides helper functions for configuration management,
+data formatting, validation, and project structure operations.
+
+Functions:
+    load_config: Load and parse YAML configuration files
+    format_currency: Format numeric values as currency strings
+    validate_api_key: Verify API key presence and validity
+    create_directory_structure: Generate standard project directories
+    days_to_nights: Convert trip duration from days to nights
+    split_budget: Allocate total budget across categories by percentage
+"""
 
 import os
 import yaml
