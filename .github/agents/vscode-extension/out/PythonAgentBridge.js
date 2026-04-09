@@ -37,48 +37,51 @@ exports.PythonAgentBridge = void 0;
 const child_process_1 = require("child_process");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
+// ─── Python Agent Bridge ────────────────────────────────────────────────────
 class PythonAgentBridge {
-    constructor(pythonPath, projectPath, openaiApiKey, qwenApiKey = '') {
+    /**
+     * Create a bridge to the Python vacation agent.
+     *
+     * @param pythonPath     Path to Python executable
+     * @param projectPath    Path to the agents/ project root
+     * @param openaiApiKey   OpenAI API key (optional)
+     * @param qwenApiKey     Qwen DashScope API key (optional)
+     * @param ollamaBaseUrl  Ollama server URL (default http://localhost:11434)
+     */
+    constructor(pythonPath, projectPath, openaiApiKey = '', qwenApiKey = '', ollamaBaseUrl = 'http://localhost:11434') {
         this.pythonPath = pythonPath;
         this.projectPath = projectPath;
         this.openaiApiKey = openaiApiKey;
         this.qwenApiKey = qwenApiKey;
+        this.ollamaBaseUrl = ollamaBaseUrl;
     }
-    updateConfig(pythonPath, projectPath, openaiApiKey, qwenApiKey = '') {
+    /** Update all configuration at once. */
+    updateConfig(pythonPath, projectPath, openaiApiKey = '', qwenApiKey = '', ollamaBaseUrl = 'http://localhost:11434') {
         this.pythonPath = pythonPath;
         this.projectPath = projectPath;
         this.openaiApiKey = openaiApiKey;
         this.qwenApiKey = qwenApiKey;
+        this.ollamaBaseUrl = ollamaBaseUrl;
     }
+    // ─── Initialization ─────────────────────────────────────────────────
+    /** Test whether the Python agent can be reached. */
     async initializeAgent() {
-        try {
-            // Test if Python is available
-            const pythonAvailable = await this.testPython();
-            if (!pythonAvailable) {
-                return {
-                    success: false,
-                    message: 'Python not found. Please configure the Python path in settings.'
-                };
-            }
-            // Test if the vacation_agent project is accessible
-            if (this.projectPath && !fs.existsSync(this.projectPath)) {
-                return {
-                    success: false,
-                    message: `Project path not found: ${this.projectPath}`
-                };
-            }
-            return {
-                success: true,
-                message: 'Vacation Agent initialized successfully!'
-            };
-        }
-        catch (error) {
+        const pythonAvailable = await this.testPython();
+        if (!pythonAvailable) {
             return {
                 success: false,
-                message: `Initialization error: ${error}`
+                message: 'Python not found. Please configure the Python path in settings.'
             };
         }
+        if (this.projectPath && !fs.existsSync(this.projectPath)) {
+            return {
+                success: false,
+                message: `Project path not found: ${this.projectPath}`
+            };
+        }
+        return { success: true, message: 'Vacation Agent initialized successfully!' };
     }
+    /** Quick smoke test: can we run Python? */
     async testPython() {
         return new Promise((resolve) => {
             const proc = (0, child_process_1.spawn)(this.pythonPath, ['--version']);
@@ -86,12 +89,16 @@ class PythonAgentBridge {
             proc.on('error', () => resolve(false));
         });
     }
+    // ─── Agent Commands ─────────────────────────────────────────────────
+    /** Send the initial greeting. */
     async sendGreeting() {
         return this.runPythonScript('greet');
     }
+    /** Send a chat message and get the response. */
     async sendMessage(message) {
         return this.runPythonScript('chat', message);
     }
+    /** Request a destination recommendation. */
     async planDestination(preference, duration, budget, travelers) {
         return this.runPythonScript('plan_destination', JSON.stringify({
             preference,
@@ -100,9 +107,17 @@ class PythonAgentBridge {
             travelers
         }));
     }
+    // ─── Internal: Script Execution ─────────────────────────────────────
+    /**
+     * Spawn a Python subprocess and return the parsed JSON response.
+     *
+     * @param command  Command name (greet, chat, plan_destination)
+     * @param arg      Optional argument (JSON or plain string)
+     */
     runPythonScript(command, arg) {
         return new Promise((resolve) => {
             const scriptPath = path.join(__dirname, '..', 'python_wrapper.py');
+            // Build environment with API keys
             const env = { ...process.env };
             if (this.openaiApiKey) {
                 env.OPENAI_API_KEY = this.openaiApiKey;
@@ -110,11 +125,17 @@ class PythonAgentBridge {
             if (this.qwenApiKey) {
                 env.QWEN_API_KEY = this.qwenApiKey;
             }
+            if (this.ollamaBaseUrl) {
+                env.OLLAMA_BASE_URL = this.ollamaBaseUrl;
+            }
+            // Build command-line arguments
             const args = [scriptPath, command];
             if (arg) {
                 args.push(arg);
             }
+            // Determine working directory
             const workingDir = this.projectPath || path.join(__dirname, '..', '..');
+            // Spawn the Python process
             const proc = (0, child_process_1.spawn)(this.pythonPath, args, {
                 cwd: workingDir,
                 env,
@@ -122,12 +143,8 @@ class PythonAgentBridge {
             });
             let output = '';
             let errorOutput = '';
-            proc.stdout.on('data', (data) => {
-                output += data.toString();
-            });
-            proc.stderr.on('data', (data) => {
-                errorOutput += data.toString();
-            });
+            proc.stdout.on('data', (data) => { output += data.toString(); });
+            proc.stderr.on('data', (data) => { errorOutput += data.toString(); });
             proc.on('close', (code) => {
                 if (code === 0) {
                     try {
@@ -135,10 +152,8 @@ class PythonAgentBridge {
                         resolve(response);
                     }
                     catch {
-                        resolve({
-                            success: true,
-                            message: output.trim()
-                        });
+                        // Not JSON — return as plain text
+                        resolve({ success: true, message: output.trim() });
                     }
                 }
                 else {

@@ -1,18 +1,30 @@
 """Main Vacation Agent implementation.
 
 Supports multiple LLM providers:
-- OpenAI (GPT-4, GPT-3.5-turbo)
-- Qwen (qwen-plus, qwen-max, qwen-turbo)
+- OpenAI (GPT-4, GPT-4-turbo, GPT-3.5-turbo)
+- Qwen (qwen-plus, qwen-max, qwen-turbo, qwen-long)
+- Ollama (llama3, mistral, phi, qwen, etc. — runs locally)
+
+Provider selection logic:
+1. If 'provider' is explicitly set, use it
+2. If not, auto-detect: ollama > qwen > openai (first available)
 """
 
 import os
 import json
+import logging
 from typing import Optional
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from src.prompts import SYSTEM_PROMPT, GREETING_PROMPT, DESTINATION_PROMPT, ITINERARY_PROMPT
 
 load_dotenv()
+
+# Configure module-level logger for debug-friendly output
+logger = logging.getLogger(__name__)
+
+
+# ─── Data Models ─────────────────────────────────────────────────────────────
 
 
 class DestinationRecommendation(BaseModel):
@@ -62,19 +74,75 @@ class Itinerary(BaseModel):
     notes: Optional[str] = None
 
 
-# Supported LLM providers
+# ─── LLM Provider Registry ───────────────────────────────────────────────────
+
 LLM_PROVIDERS = {
     "openai": {
         "models": ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
         "api_key_env": "OPENAI_API_KEY",
         "base_url": "https://api.openai.com/v1/chat/completions",
+        "requires_api_key": True,
+        "display_name": "OpenAI",
     },
     "qwen": {
         "models": ["qwen-plus", "qwen-max", "qwen-turbo", "qwen-long"],
         "api_key_env": "QWEN_API_KEY",
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        "requires_api_key": True,
+        "display_name": "Qwen (Alibaba Cloud)",
+    },
+    "ollama": {
+        "models": ["llama3", "mistral", "phi3", "qwen2", "gemma2", "deepseek-r1"],
+        "api_key_env": None,  # No API key needed
+        "base_url": "http://localhost:11434/v1/chat/completions",
+        "requires_api_key": False,
+        "display_name": "Ollama (Local)",
     },
 }
+
+# Provider priority order for auto-detection
+PROVIDER_PRIORITY = ["ollama", "qwen", "openai"]
+
+
+# ─── Helper Functions ────────────────────────────────────────────────────────
+
+
+def _detect_provider(
+    provider_hint: Optional[str] = None,
+) -> str:
+    """Auto-detect the best available LLM provider.
+
+    Priority: ollama (local) > qwen > openai
+    If a hint is provided and valid, use it.
+
+    Args:
+        provider_hint: User-specified provider preference
+
+    Returns:
+        Provider name string
+    """
+    # If user explicitly requested a provider, honor it
+    if provider_hint and provider_hint in LLM_PROVIDERS:
+        return provider_hint
+
+    # Auto-detect: first available provider wins
+    for provider in PROVIDER_PRIORITY:
+        config = LLM_PROVIDERS[provider]
+
+        # Ollama: always available as a local service (we check connectivity later)
+        if provider == "ollama":
+            continue  # Always considered available
+
+        # Cloud providers: need an API key
+        api_key_env = config["api_key_env"]
+        if api_key_env and os.getenv(api_key_env):
+            return provider
+
+    # Default fallback
+    return "openai"
+
+
+# ─── Main Agent Class ────────────────────────────────────────────────────────
 
 
 class VacationAgent:
@@ -86,8 +154,9 @@ class VacationAgent:
     - Rail: amtrak.com
 
     Supports multiple LLM providers:
-    - OpenAI (default)
-    - Qwen (Alibaba Cloud)
+    - OpenAI (GPT-4, GPT-4-turbo, GPT-3.5-turbo)
+    - Qwen (qwen-plus, qwen-max, qwen-turbo)
+    - Ollama (llama3, mistral, phi3, etc. — local, no API key)
     """
 
     # Approved sources
@@ -103,79 +172,132 @@ class VacationAgent:
 
     def __init__(
         self,
-        model_name: str = "gpt-4",
-        provider: str = "openai",
+        model_name: Optional[str] = None,
+        provider: Optional[str] = None,
         openai_api_key: Optional[str] = None,
         qwen_api_key: Optional[str] = None,
+        ollama_base_url: Optional[str] = None,
     ):
         """Initialize the Vacation Agent.
 
         Args:
-            model_name: Name of the LLM model to use
-            provider: LLM provider ('openai' or 'qwen')
-            openai_api_key: OpenAI API key (falls back to env var)
-            qwen_api_key: Qwen API key (falls back to env var)
+            model_name: LLM model name (auto-selected if None)
+            provider: LLM provider — 'openai', 'qwen', or 'ollama' (auto-detected if None)
+            openai_api_key: OpenAI API key (falls back to OPENAI_API_KEY env var)
+            qwen_api_key: Qwen API key (falls back to QWEN_API_KEY env var)
+            ollama_base_url: Ollama server URL (falls back to OLLAMA_BASE_URL env var
+                             or default http://localhost:11434)
         """
-        self.provider = provider if provider in LLM_PROVIDERS else "openai"
-        self.model_name = model_name
+        # Resolve provider
+        self.provider = _detect_provider(provider)
+        provider_config = LLM_PROVIDERS[self.provider]
+
+        # Resolve model name
+        if model_name:
+            self.model_name = model_name
+        else:
+            # Default to first model in provider's list
+            self.model_name = provider_config["models"][0]
+
+        # Store API keys / endpoints
         self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
         self.qwen_api_key = qwen_api_key or os.getenv("QWEN_API_KEY")
+        self.ollama_base_url = (
+            ollama_base_url
+            or os.getenv("OLLAMA_BASE_URL")
+            or "http://localhost:11434"
+        )
+
+        # Initialize conversation state
         self.conversation_history = [
             {"role": "system", "content": SYSTEM_PROMPT}
         ]
-        self.user_preferences = {}
+        self.user_preferences: dict = {}
+
+        # Log initialization for debugging
+        logger.debug(
+            "VacationAgent initialized: provider=%s, model=%s, llm_available=%s",
+            self.provider,
+            self.model_name,
+            self.is_llm_available(),
+        )
+
+    # ─── Provider Configuration ───────────────────────────────────────────
 
     def get_api_key(self) -> Optional[str]:
         """Get the API key for the current provider.
 
         Returns:
-            API key string or None
+            API key string, or None for local providers (Ollama)
         """
         if self.provider == "qwen":
             return self.qwen_api_key
-        return self.openai_api_key
+        if self.provider == "openai":
+            return self.openai_api_key
+        # Ollama doesn't need an API key
+        return None
+
+    def get_base_url(self) -> str:
+        """Get the API base URL for the current provider.
+
+        Returns:
+            Full URL endpoint for LLM requests
+        """
+        if self.provider == "ollama":
+            return f"{self.ollama_base_url}/v1/chat/completions"
+
+        provider_config = self.get_provider_config()
+        return provider_config["base_url"]
 
     def get_provider_config(self) -> dict:
         """Get configuration for the current LLM provider.
 
         Returns:
-            Dictionary with provider configuration
+            Dictionary with provider settings
         """
         return LLM_PROVIDERS[self.provider]
 
     def is_llm_available(self) -> bool:
-        """Check if the LLM provider is properly configured.
+        """Check if the LLM provider is ready to respond.
+
+        For cloud providers: API key must be configured.
+        For Ollama: Always considered available (connectivity checked at call time).
 
         Returns:
-            True if API key is available, False otherwise
+            True if provider can be reached, False otherwise
         """
-        return self.get_api_key() is not None and len(self.get_api_key()) > 0
+        provider_config = self.get_provider_config()
+
+        # Ollama: no API key needed, always considered available
+        if not provider_config.get("requires_api_key"):
+            return True
+
+        # Cloud providers: need a valid API key
+        api_key = self.get_api_key()
+        return api_key is not None and len(api_key) > 0
+
+    # ─── LLM Communication ────────────────────────────────────────────────
 
     def _call_llm(self, messages: list[dict]) -> Optional[str]:
-        """Call the LLM with the given messages.
+        """Call the LLM with conversation messages.
 
         Args:
-            messages: List of message dicts with 'role' and 'content'
+            messages: List of {role, content} dicts
 
         Returns:
-            LLM response text or None if unavailable
+            Response text, or None on failure
         """
         api_key = self.get_api_key()
-        if not api_key:
-            return None
+        base_url = self.get_base_url()
 
-        provider_config = self.get_provider_config()
-        base_url = provider_config["base_url"]
-
+        # Build headers
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
         }
-
-        # Qwen uses dashscope authorization format
-        if self.provider == "qwen":
+        if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
 
+        # Build request payload
         payload = {
             "model": self.model_name,
             "messages": messages,
@@ -192,11 +314,59 @@ class VacationAgent:
                 base_url, data=data, headers=headers, method="POST"
             )
 
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.urlopen(req, timeout=60) as response:
                 result = json.loads(response.read().decode("utf-8"))
-                return result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                content = (
+                    result.get("choices", [{}])[0]
+                    .get("message", {})
+                    .get("content", "")
+                )
+                logger.debug("LLM response received: %d chars", len(content))
+                return content
+
+        except urllib.error.HTTPError as e:
+            error_body = ""
+            try:
+                error_body = e.read().decode("utf-8")
+            except Exception:
+                pass
+            logger.error(
+                "LLM HTTP %d error: %s — %s", e.code, base_url, error_body[:200]
+            )
+            return (
+                f"[LLM Error: HTTP {e.code} from {base_url}. "
+                f"Details: {error_body[:200]}]"
+            )
+
+        except urllib.error.URLError as e:
+            reason = str(e.reason)
+            logger.error("LLM URL error: %s — %s", base_url, reason)
+            if "Connection refused" in reason or "111" in reason:
+                hint = self._connection_hint()
+                return f"[LLM Error: Cannot connect to {base_url}. {reason}. {hint}]"
+            return f"[LLM Error: {reason}]"
+
         except Exception as e:
+            logger.error("LLM unexpected error: %s", str(e))
             return f"[LLM Error: {str(e)}]"
+
+    def _connection_hint(self) -> str:
+        """Return a helpful hint if Ollama can't be reached.
+
+        Returns:
+            Human-readable troubleshooting message
+        """
+        if self.provider != "ollama":
+            return ""
+
+        return (
+            "Make sure Ollama is installed and running. "
+            "Start it with: ollama serve. "
+            "Then pull a model: ollama pull llama3. "
+            "See https://ollama.com for setup instructions."
+        )
+
+    # ─── User Interaction ─────────────────────────────────────────────────
 
     def greet(self) -> str:
         """Send initial greeting and ask clarifying questions.
@@ -273,6 +443,8 @@ class VacationAgent:
 
         return self.user_preferences
 
+    # ─── Source Validation ────────────────────────────────────────────────
+
     def validate_source(self, url: str) -> bool:
         """Validate that a URL is from an approved source.
 
@@ -284,19 +456,16 @@ class VacationAgent:
         """
         url_lower = url.lower()
 
-        # Check review sources
         if any(source in url_lower for source in self.APPROVED_REVIEW_SOURCES):
             return True
-
-        # Check airline sources
         if any(airline in url_lower for airline in self.APPROVED_AIRLINES.keys()):
             return True
-
-        # Check rail sources
         if any(rail in url_lower for rail in self.APPROVED_RAIL.keys()):
             return True
 
         return False
+
+    # ─── Planning Methods ─────────────────────────────────────────────────
 
     def plan_destination(
         self,
@@ -318,7 +487,6 @@ class VacationAgent:
         Returns:
             DestinationRecommendation object
         """
-        # Store preferences
         self.collect_preferences(
             vacation_type=preference,
             duration=duration_days,
@@ -341,7 +509,6 @@ class VacationAgent:
                 self.conversation_history.append(
                     {"role": "assistant", "content": llm_response}
                 )
-                # Return a structured response from LLM output
                 return DestinationRecommendation(
                     destination="See response above",
                     country="See response above",
@@ -353,13 +520,15 @@ class VacationAgent:
                     tripadvisor_url="https://www.tripadvisor.com",
                 )
 
-        # Fallback placeholder
+        # Fallback
         return DestinationRecommendation(
             destination="TBD",
             country="TBD",
-            description=f"Based on your preference for a {preference} vacation, "
-            f"I'll find verified options from TripAdvisor reviews. "
-            f"Using {self.provider} ({self.model_name}).",
+            description=(
+                f"Based on your preference for a {preference} vacation, "
+                f"I'll find verified options from TripAdvisor reviews. "
+                f"Using {self.provider} ({self.model_name})."
+            ),
             estimated_cost=budget,
             duration_days=duration_days,
             highlights=[],
@@ -386,7 +555,7 @@ class VacationAgent:
         Returns:
             List of verified transportation options
         """
-        placeholder = [
+        return [
             Transportation(
                 type="flight",
                 carrier="American Airlines",
@@ -398,7 +567,6 @@ class VacationAgent:
                 booking_url="https://www.aa.com",
             )
         ]
-        return placeholder
 
     def suggest_activities(
         self,
@@ -418,18 +586,19 @@ class VacationAgent:
         Returns:
             List of verified activity suggestions
         """
-        placeholder = [
+        return [
             Activity(
                 name="Activity verification pending",
-                description=f"Activities for {vacation_type} vacation in {destination} "
-                f"will be sourced from TripAdvisor reviews.",
+                description=(
+                    f"Activities for {vacation_type} vacation in {destination} "
+                    f"will be sourced from TripAdvisor reviews."
+                ),
                 duration_hours=0,
                 cost_estimate=0.0,
                 tripadvisor_url="https://www.tripadvisor.com",
                 suitable_for_adults_only=True,
             )
         ]
-        return placeholder
 
     def generate_itinerary(
         self,
@@ -482,8 +651,13 @@ class VacationAgent:
             "activities": "TBD - Verify at tripadvisor.com",
             "rail_alternative": "TBD - Verify at amtrak.com",
             "total": "TBD - All costs will be verified from approved sources",
-            "note": "All pricing will be double-checked from approved carrier websites and TripAdvisor",
+            "note": (
+                "All pricing will be double-checked from approved carrier "
+                "websites and TripAdvisor"
+            ),
         }
+
+    # ─── Validation ───────────────────────────────────────────────────────
 
     def validate_suggestions(self, suggestions: list) -> dict:
         """Validate all suggestions before presenting to user.
@@ -503,7 +677,6 @@ class VacationAgent:
             "warnings": [],
         }
 
-        # Check all suggestions have source URLs
         for suggestion in suggestions:
             if hasattr(suggestion, "tripadvisor_url") and suggestion.tripadvisor_url:
                 if self.validate_source(suggestion.tripadvisor_url):
@@ -519,6 +692,8 @@ class VacationAgent:
                 validation_results["pending_verification"].append(str(suggestion))
 
         return validation_results
+
+    # ─── Chat ─────────────────────────────────────────────────────────────
 
     def chat(self, message: str) -> str:
         """Chat with the agent.
@@ -547,11 +722,14 @@ class VacationAgent:
             f"Thank you for your message! I'm reviewing verified sources from TripAdvisor "
             f"and approved carrier websites to provide you with accurate, double-checked information. "
             f"Using {self.provider} ({self.model_name}). "
-            f"Note: Configure your API key for full LLM responses."
+            f"Note: Configure your API key or start Ollama for full LLM responses."
         )
 
         self.conversation_history.append({"role": "assistant", "content": response})
         return response
+
+
+# ─── CLI Entry Point ─────────────────────────────────────────────────────────
 
 
 def main():
@@ -559,13 +737,13 @@ def main():
     agent = VacationAgent()
     print("🌴 Welcome to Your Adult-Only Vacation Planner!")
     print("=" * 60)
-    print(f"Provider: {agent.provider} ({agent.model_name})")
-    print(f"LLM Available: {agent.is_llm_available()}")
-    print()
+    print(f"  Provider:    {agent.provider} ({agent.model_name})")
+    print(f"  LLM Ready:   {agent.is_llm_available()}")
+    print(f"  Base URL:    {agent.get_base_url()}")
+    print("=" * 60)
 
-    # Send greeting
     greeting = agent.greet()
-    print(f"{greeting}")
+    print(f"\n{greeting}")
 
 
 if __name__ == "__main__":

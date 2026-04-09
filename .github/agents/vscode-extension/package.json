@@ -57,15 +57,15 @@
         },
         "vacationAgent.llmProvider": {
           "type": "string",
-          "enum": ["openai", "qwen"],
-          "default": "openai",
-          "description": "LLM provider: OpenAI or Qwen (Alibaba Cloud)",
+          "enum": ["openai", "qwen", "ollama"],
+          "default": "ollama",
+          "description": "LLM provider: OpenAI, Qwen (Alibaba Cloud), or Ollama (local)",
           "order": 3
         },
         "vacationAgent.openaiApiKey": {
           "type": "string",
           "default": "",
-          "description": "OpenAI API Key (optional, uses env var if empty)",
+          "description": "OpenAI API Key (optional — uses env var if empty)",
           "order": 4
         },
         "vacationAgent.qwenApiKey": {
@@ -73,6 +73,12 @@
           "default": "",
           "description": "Qwen API Key from Alibaba Cloud DashScope (optional)",
           "order": 5
+        },
+        "vacationAgent.ollamaBaseUrl": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Ollama server URL (default: http://localhost:11434)",
+          "order": 6
         }
       }
     }

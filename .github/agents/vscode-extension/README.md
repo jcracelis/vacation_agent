@@ -4,129 +4,115 @@ Integrate the AI-powered adult-only vacation planner directly into VS Code.
 
 ## Features
 
-- 💬 **Chat Interface** - Interactive chat panel in VS Code sidebar
-- 🌴 **Vacation Planning** - Get destination recommendations from verified TripAdvisor sources
-- ✈️ **Transportation Search** - Find non-stop flights and rail options
-- 📋 **Itinerary Generation** - Create detailed day-by-day plans
-- 💰 **Budget Estimates** - Accurate pricing from verified sources
-- 🔍 **Source Validation** - All recommendations verified before presentation
-- 🤖 **Multi-Provider LLM** - Choose between OpenAI (GPT-4) and Qwen (Alibaba Cloud)
+- 💬 **Chat Interface** — Interactive chat panel in VS Code sidebar
+- 🌴 **Vacation Planning** — Destination recommendations from TripAdvisor
+- ✈️ **Transportation Search** — Non-stop flights and rail options
+- 📋 **Itinerary Generation** — Detailed day-by-day plans
+- 💰 **Budget Estimates** — Verified pricing from approved sources
+- 🔍 **Source Validation** — All recommendations verified before presentation
+- 🤖 **Three LLM Providers** — Ollama (local, free), OpenAI (GPT-4), Qwen (Alibaba Cloud)
 
 ## Requirements
 
 - **VS Code 1.85+**
-- **Node.js 18+** - For building the extension
-- **Python 3.10+** - For the vacation agent backend
-- **@vscode/vsce** (optional) - For packaging: `npm install -g @vscode/vsce`
+- **Node.js 18+** — For building the extension
+- **Python 3.10+** — For the vacation agent backend
+- **Ollama** (recommended, optional) — For local LLM: https://ollama.com
 
 ## Installation
 
-### Option 1: Development Installation (Recommended)
+### Option 1: Development Installation
 
-1. **Install Node.js** (if not already installed)
-   - Download from: https://nodejs.org/
-
-2. **Install dependencies**
+1. **Install dependencies**
    ```bash
    cd vscode-extension
    npm install
    ```
 
-3. **Compile the extension**
+2. **Compile**
    ```bash
    npm run compile
    ```
 
-4. **Run the extension**
-   - Open the `vscode-extension` folder in VS Code
-   - Press `F5` to launch the Extension Development Host
-   - A new VS Code window will open with the extension loaded
+3. **Run** — Open the `vscode-extension` folder in VS Code, press `F5`
 
-5. **Access the extension**
-   - Click the Vacation Agent icon in the Activity Bar (left sidebar)
-   - Or use Command Palette: `Ctrl+Shift+P` / `Cmd+Shift+P`
-   - Type "Vacation Agent: Start Planning"
+4. **Access** — Click the Vacation Agent icon in the Activity Bar, or:
+   `Ctrl+Shift+P` → "Vacation Agent: Start Planning"
 
 ### Option 2: Package as VSIX
 
 ```bash
-# Install vsce globally
 npm install -g @vscode/vsce
-
-# Package the extension
 vsce package
-
-# Install the .vsix file (version number may vary)
 code --install-extension vacation-agent-<version>.vsix
 ```
 
 ## Configuration
 
-Open VS Code Settings (`Ctrl+,` / `Cmd+,`) and configure:
+Open VS Code Settings (`Ctrl+,`):
 
-### Required Settings
+### Required
 
-1. **Vacation Agent: Project Path**
-   - Path to the `agents/` directory
-   - **Windows:** `C:\Users\yourname\github\vacation_agent\.github\agents`
-   - **Linux:** `/home/user/github/vacation_agent/.github/agents`
-   - **Mac:** `/Users/yourname/github/vacation_agent/.github/agents`
+| Setting | Description | Example |
+|---------|-------------|---------|
+| **Project Path** | Path to `agents/` directory | `C:\Users\you\github\vacation_agent\.github\agents` |
+| **Python Path** | Python executable | `C:\Program Files\Python314\python.exe` or `python3` |
 
-2. **Vacation Agent: Python Path**
-   - Path to your Python executable
-   - **Windows:** `C:\Program Files\Python312\python.exe` or `python`
-   - **Linux/Mac:** `python3` or `/usr/bin/python3`
+### LLM Provider
 
-3. **Vacation Agent: LLM Provider**
-   - `openai` (default) - Uses GPT-4 / GPT-3.5-turbo
-   - `qwen` - Uses Qwen-plus / Qwen-max (Alibaba Cloud DashScope)
+| Setting | Values | Default | Description |
+|---------|--------|---------|-------------|
+| **LLM Provider** | `ollama`, `openai`, `qwen` | `ollama` | Choose your LLM |
+| **Ollama Base URL** | URL | `http://localhost:11434` | Ollama server address |
+| **OpenAI API Key** | String | _(empty)_ | OpenAI key or `OPENAI_API_KEY` env var |
+| **Qwen API Key** | String | _(empty)_ | DashScope key or `QWEN_API_KEY` env var |
 
-4. **Vacation Agent: OpenAI API Key** (optional)
-   - Get from: https://platform.openai.com/api-keys
-   - Can also be set via environment variable `OPENAI_API_KEY`
+### Example: Ollama (Local, Free)
 
-5. **Vacation Agent: Qwen API Key** (optional)
-   - Get from: https://dashscope.console.aliyun.com/
-   - Can also be set via environment variable `QWEN_API_KEY`
+```json
+{
+  "vacationAgent.llmProvider": "ollama",
+  "vacationAgent.ollamaBaseUrl": "http://localhost:11434"
+}
+```
+
+### Example: OpenAI
+
+```json
+{
+  "vacationAgent.llmProvider": "openai",
+  "vacationAgent.openaiApiKey": "sk-your-key-here"
+}
+```
+
+### Example: Qwen
+
+```json
+{
+  "vacationAgent.llmProvider": "qwen",
+  "vacationAgent.qwenApiKey": "your-dashscope-key"
+}
+```
 
 ## Usage
 
 ### Commands
 
-Access via Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
+| Command | Palette Name | Description |
+|---------|-------------|-------------|
+| `vacationAgent.startPlanning` | Vacation Agent: Start Planning | New planning session |
+| `vacationAgent.clearChat` | Vacation Agent: Clear Chat | Clear conversation |
 
-- **Vacation Agent: Start Planning** - Start a new planning session
-- **Vacation Agent: Clear Chat** - Clear the conversation history
-
-### Chat Interface
-
-1. Click the Vacation Agent icon in the Activity Bar
-2. The agent will greet you with clarifying questions
-3. Answer questions about your preferences:
-   - Vacation type (beach, mountains, city, etc.)
-   - Duration
-   - Budget
-   - Travel dates
-   - Origin location
-4. Receive verified recommendations from TripAdvisor and approved carriers
-
-### Example Conversation
+### Chat Flow
 
 ```
-Agent: Hello! I'm your adult-only vacation planner. What type of vacation are you dreaming of?
+Agent: Hello! I'm your adult-only vacation planner. What type of vacation
+       are you dreaming of?
 
 You: I'm looking for a romantic beach getaway for 7 days
 
 Agent: Wonderful! Let me find some verified options from TripAdvisor...
-```
-
-## Python Dependencies
-
-Make sure the vacation_agent Python dependencies are installed:
-
-```bash
-cd /path/to/agents
-pip install -r requirements.txt
+       [presents destination, cost, highlights]
 ```
 
 ## Project Structure
@@ -134,86 +120,44 @@ pip install -r requirements.txt
 ```
 vscode-extension/
 ├── src/
-│   ├── extension.ts                  # Main extension entry point
-│   ├── VacationAgentViewProvider.ts  # Webview provider
-│   └── PythonAgentBridge.ts          # Python process communication (multi-provider)
+│   ├── extension.ts                  # Extension entry point
+│   ├── VacationAgentViewProvider.ts  # Webview chat panel
+│   └── PythonAgentBridge.ts          # Python subprocess bridge
 ├── out/                              # Compiled JavaScript (generated)
-│   ├── extension.js
-│   ├── VacationAgentViewProvider.js
-│   └── PythonAgentBridge.js
 ├── media/
-│   ├── chat.css                      # Chat interface styles
-│   ├── chat.js                       # Chat interface logic
+│   ├── chat.css                      # Chat styles
+│   ├── chat.js                       # Chat UI logic
 │   └── icon.svg                      # Extension icon
-├── python_wrapper.py                 # Python script wrapper (multi-provider)
+├── python_wrapper.py                 # Python wrapper (3 providers)
 ├── .vscode/
 │   └── settings.json                 # Default configuration
 ├── package.json                      # Extension manifest
-├── tsconfig.json                     # TypeScript configuration
+├── tsconfig.json                     # TypeScript config
 └── README.md                         # This file
 ```
 
 ## Troubleshooting
 
-### Python Not Found
-
-**Error:** "Python not found. Please configure the Python path in settings."
-
-**Solution:**
-1. Open VS Code Settings
-2. Search for "Vacation Agent: Python Path"
-3. Set the correct path to your Python executable
-
-### Project Path Not Found
-
-**Error:** "Project path not found: [path]"
-
-**Solution:**
-1. Open VS Code Settings
-2. Search for "Vacation Agent: Project Path"
-3. Set the absolute path to your `agents/` directory
-
-### No Response from Agent
-
-**Issue:** Agent doesn't respond or shows errors
-
-**Solution:**
-1. Check that Python dependencies are installed: `pip install -r requirements.txt`
-2. Verify the project path is correct
-3. Check the VS Code Developer Tools for errors: `Help > Toggle Developer Tools`
-
-### TypeScript Compilation Errors
-
-**Error:** TypeScript compilation fails
-
-**Solution:**
-```bash
-cd vscode-extension
-npm install
-npm run compile
-```
+| Problem | Solution |
+|---------|----------|
+| "Python not found" | Set `vacationAgent.pythonPath` in settings |
+| "Project path not found" | Set `vacationAgent.projectPath` to absolute path |
+| No response from agent | Check Python deps: `pip install -r requirements.txt` |
+| "Cannot connect to Ollama" | Run `ollama serve` and `ollama pull llama3` |
+| TypeScript errors | Run `npm install && npm run compile` |
+| Developer errors | `Help > Toggle Developer Tools` → Console tab |
 
 ## Development
 
-### Watch Mode
-
-For automatic recompilation during development:
-
 ```bash
+# Watch mode (auto-recompile)
 npm run watch
-```
 
-### Debugging
-
-1. Open the `vscode-extension` folder in VS Code
-2. Go to Run and Debug view (`Ctrl+Shift+D` / `Cmd+Shift+D`)
-3. Select "Run Extension" and press F5
-4. Use breakpoints in TypeScript files
-
-### Linting
-
-```bash
+# Lint
 npm run lint
+
+# Package
+vsce package
 ```
 
 ## License
@@ -222,5 +166,4 @@ MIT
 
 ## Support
 
-For issues and feature requests, please visit:
 https://github.com/jcracelis/vacation_agent/issues

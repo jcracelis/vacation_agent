@@ -38,33 +38,36 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const VacationAgentViewProvider_1 = require("./VacationAgentViewProvider");
 const PythonAgentBridge_1 = require("./PythonAgentBridge");
+// ─── Extension Lifecycle ────────────────────────────────────────────────────
 function activate(context) {
-    console.log('Vacation Agent extension is now active');
-    // Create the Python agent bridge
+    console.log('🌴 Vacation Agent extension is now active');
+    // ─── Read Configuration ─────────────────────────────────────────────
     const config = vscode.workspace.getConfiguration('vacationAgent');
     const pythonPath = config.get('pythonPath', 'python');
     const projectPath = config.get('projectPath', '');
     const openaiApiKey = config.get('openaiApiKey', '');
     const qwenApiKey = config.get('qwenApiKey', '');
-    const bridge = new PythonAgentBridge_1.PythonAgentBridge(pythonPath, projectPath, openaiApiKey, qwenApiKey);
-    // Register the view provider
+    const ollamaBaseUrl = config.get('ollamaBaseUrl', 'http://localhost:11434');
+    // ─── Create Bridge ──────────────────────────────────────────────────
+    const bridge = new PythonAgentBridge_1.PythonAgentBridge(pythonPath, projectPath, openaiApiKey, qwenApiKey, ollamaBaseUrl);
+    // ─── Register View Provider ─────────────────────────────────────────
     const viewProvider = new VacationAgentViewProvider_1.VacationAgentViewProvider(context.extensionUri, bridge);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(VacationAgentViewProvider_1.VacationAgentViewProvider.viewType, viewProvider, { webviewOptions: { retainContextWhenHidden: true } }));
-    // Register commands
-    const startPlanningCommand = vscode.commands.registerCommand('vacationAgent.startPlanning', () => {
+    // ─── Register Commands ──────────────────────────────────────────────
+    context.subscriptions.push(vscode.commands.registerCommand('vacationAgent.startPlanning', () => {
         vscode.commands.executeCommand('vacationAgent.chatView.focus');
         viewProvider.startNewPlanning();
-    });
-    const clearChatCommand = vscode.commands.registerCommand('vacationAgent.clearChat', () => {
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand('vacationAgent.clearChat', () => {
         viewProvider.clearChat();
-    });
-    context.subscriptions.push(startPlanningCommand, clearChatCommand);
-    // Watch for configuration changes
+    }));
+    // ─── Watch for Configuration Changes ────────────────────────────────
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration('vacationAgent')) {
-            const newConfig = vscode.workspace.getConfiguration('vacationAgent');
-            bridge.updateConfig(newConfig.get('pythonPath', 'python'), newConfig.get('projectPath', ''), newConfig.get('openaiApiKey', ''), newConfig.get('qwenApiKey', ''));
+        if (!e.affectsConfiguration('vacationAgent')) {
+            return;
         }
+        const newConfig = vscode.workspace.getConfiguration('vacationAgent');
+        bridge.updateConfig(newConfig.get('pythonPath', 'python'), newConfig.get('projectPath', ''), newConfig.get('openaiApiKey', ''), newConfig.get('qwenApiKey', ''), newConfig.get('ollamaBaseUrl', 'http://localhost:11434'));
     }));
 }
 function deactivate() {
