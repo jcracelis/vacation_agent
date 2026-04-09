@@ -7,7 +7,15 @@ import json
 from pathlib import Path
 
 # Add the project root to the path
-project_root = Path(__file__).parent.parent.parent
+# python_wrapper.py is at: .github/agents/vscode-extension/python_wrapper.py
+# src/ is at: .github/agents/src/
+# So we need to go up 2 levels (parent.parent)
+project_root = Path(__file__).resolve().parent.parent
+if not (project_root / "src" / "agent.py").exists():
+    # Fallback: try going up 3 levels in case of different layout
+    alt_root = Path(__file__).resolve().parent.parent.parent
+    if (alt_root / "src" / "agent.py").exists():
+        project_root = alt_root
 sys.path.insert(0, str(project_root))
 
 from src.agent import VacationAgent

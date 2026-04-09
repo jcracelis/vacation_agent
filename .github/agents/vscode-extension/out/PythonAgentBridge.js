@@ -109,7 +109,7 @@ class PythonAgentBridge {
             if (arg) {
                 args.push(arg);
             }
-            const workingDir = this.projectPath || path.join(__dirname, '..', '..', '..');
+            const workingDir = this.projectPath || path.join(__dirname, '..', '..');
             const proc = (0, child_process_1.spawn)(this.pythonPath, args, {
                 cwd: workingDir,
                 env,
