@@ -35,7 +35,15 @@ Auto-detection priority: **Ollama → Qwen → OpenAI** (first available wins). 
 
 ## Quick Start
 
-### Step 1: Install Python Dependencies
+### Windows (One-Click Setup)
+
+Double-click `.github\agents\setup.bat` — it installs Python dependencies, compiles the extension, checks for Ollama, and opens VS Code.
+
+Then in VS Code: **F5** → click 🌴 Vacation Agent icon → chat!
+
+### Manual Setup
+
+#### Step 1: Install Python Dependencies
 
 ```bash
 cd .github/agents
