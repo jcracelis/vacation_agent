@@ -61,7 +61,19 @@ The agent uses **ONLY** these verified sources:
 - **Python 3.10+** - Required for the vacation agent backend
 - **Node.js 18+** - Required for building the VS Code extension
 - **VS Code 1.85+** - Minimum supported version
-- **OpenAI API Key** (optional) - For LLM-powered responses
+- **OpenAI API Key** (optional) - For GPT-4 / GPT-3.5-turbo responses
+- **Qwen API Key** (optional) - For Qwen-plus / Qwen-max responses (Alibaba Cloud DashScope)
+
+### LLM Providers
+
+The agent supports two LLM providers:
+
+| Provider | Models | API Key Env Var | Setup |
+|----------|--------|-----------------|-------|
+| **OpenAI** (default) | gpt-4, gpt-4-turbo, gpt-3.5-turbo | `OPENAI_API_KEY` | https://platform.openai.com/api-keys |
+| **Qwen** | qwen-plus, qwen-max, qwen-turbo | `QWEN_API_KEY` | https://dashscope.console.aliyun.com/ |
+
+**Provider selection:** If both API keys are set, Qwen takes priority. Configure `vacationAgent.llmProvider` in VS Code settings to choose.
 
 ### Step 1: Install Python Dependencies
 
@@ -128,20 +140,34 @@ npm run compile
    |---------|-------|-------------|
    | **Vacation Agent: Project Path** | Path to this `agents/` directory | Full path to this folder |
    | **Vacation Agent: Python Path** | `python`, `python3`, or full path | Your Python executable |
+   | **Vacation Agent: LLM Provider** | `openai` (default) or `qwen` | Choose your LLM provider |
    | **Vacation Agent: OpenAI API Key** | Your API key (optional) | Or set `OPENAI_API_KEY` env var |
+   | **Vacation Agent: Qwen API Key** | Your API key (optional) | Or set `QWEN_API_KEY` env var |
 
-   **Windows Example:**
+   **Windows Example (OpenAI):**
    ```
    Project Path: C:\Users\yourname\github\vacation_agent\.github\agents
    Python Path: C:\Program Files\Python312\python.exe
-   OpenAI API Key: sk-your-key-here (optional)
+   LLM Provider: openai
+   OpenAI API Key: sk-your-key-here
+   Qwen API Key: (leave empty)
+   ```
+
+   **Windows Example (Qwen):**
+   ```
+   Project Path: C:\Users\yourname\github\vacation_agent\.github\agents
+   Python Path: C:\Program Files\Python312\python.exe
+   LLM Provider: qwen
+   OpenAI API Key: (leave empty)
+   Qwen API Key: your-dashscope-key-here
    ```
 
    **Linux/Mac Example:**
    ```
    Project Path: /home/user/github/vacation_agent/.github/agents
    Python Path: python3
-   OpenAI API Key: sk-your-key-here (optional)
+   LLM Provider: openai
+   OpenAI API Key: sk-your-key-here
    ```
 
    **Alternative: Edit settings.json directly:**
@@ -151,7 +177,9 @@ npm run compile
    {
      "vacationAgent.projectPath": "/path/to/vacation_agent/.github/agents",
      "vacationAgent.pythonPath": "python3",
-     "vacationAgent.openaiApiKey": "sk-your-api-key-here"
+     "vacationAgent.llmProvider": "openai",
+     "vacationAgent.openaiApiKey": "sk-your-api-key-here",
+     "vacationAgent.qwenApiKey": "your-qwen-api-key"
    }
    ```
 
@@ -173,28 +201,40 @@ npm run compile
    - Answer the agent's questions about your preferences
    - Receive verified recommendations from TripAdvisor and approved carriers
 
-### Step 5: Set OpenAI API Key (Optional)
+### Step 5: Set API Keys (Optional)
 
-If you want to use LLM-powered responses:
+The agent supports two LLM providers. Configure at least one for full responses.
 
-**Method 1: VS Code Settings** (shown above in Step 3)
+#### **Option A: VS Code Settings**
 
-**Method 2: Environment Variable**
+Open Settings (`Ctrl+,`), search for "Vacation Agent", and set:
+- `llmProvider`: `"openai"` or `"qwen"`
+- `openaiApiKey`: Your OpenAI key
+- `qwenApiKey`: Your Qwen (DashScope) key
+
+#### **Option B: Environment Variables**
+
 ```bash
 # Linux/Mac
 export OPENAI_API_KEY="sk-your-api-key-here"
+export QWEN_API_KEY="your-dashscope-key-here"
 
 # Windows (Command Prompt)
 set OPENAI_API_KEY=sk-your-api-key-here
+set QWEN_API_KEY=your-dashscope-key
 
 # Windows (PowerShell)
 $env:OPENAI_API_KEY="sk-your-api-key-here"
+$env:QWEN_API_KEY="your-dashscope-key"
 
 # Or add to .env file in agents root:
 echo "OPENAI_API_KEY=sk-your-api-key-here" > .env
+echo "QWEN_API_KEY=your-dashscope-key" >> .env
 ```
 
-**Get your API key:** https://platform.openai.com/api-keys
+**Get your API keys:**
+- **OpenAI:** https://platform.openai.com/api-keys
+- **Qwen (DashScope):** https://dashscope.console.aliyun.com/
 
 ## Usage
 

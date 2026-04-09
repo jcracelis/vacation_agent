@@ -5,24 +5,40 @@ import * as fs from 'fs';
 export interface AgentResponse {
     success: boolean;
     message: string;
+    provider?: string;
+    model?: string;
+    llmAvailable?: boolean;
     data?: any;
 }
 
 export class PythonAgentBridge {
     private pythonPath: string;
     private projectPath: string;
-    private apiKey: string;
+    private openaiApiKey: string;
+    private qwenApiKey: string;
 
-    constructor(pythonPath: string, projectPath: string, apiKey: string) {
+    constructor(
+        pythonPath: string,
+        projectPath: string,
+        openaiApiKey: string,
+        qwenApiKey: string = ''
+    ) {
         this.pythonPath = pythonPath;
         this.projectPath = projectPath;
-        this.apiKey = apiKey;
+        this.openaiApiKey = openaiApiKey;
+        this.qwenApiKey = qwenApiKey;
     }
 
-    updateConfig(pythonPath: string, projectPath: string, apiKey: string) {
+    updateConfig(
+        pythonPath: string,
+        projectPath: string,
+        openaiApiKey: string,
+        qwenApiKey: string = ''
+    ) {
         this.pythonPath = pythonPath;
         this.projectPath = projectPath;
-        this.apiKey = apiKey;
+        this.openaiApiKey = openaiApiKey;
+        this.qwenApiKey = qwenApiKey;
     }
 
     async initializeAgent(): Promise<AgentResponse> {
@@ -89,10 +105,13 @@ export class PythonAgentBridge {
     private runPythonScript(command: string, arg?: string): Promise<AgentResponse> {
         return new Promise((resolve) => {
             const scriptPath = path.join(__dirname, '..', 'python_wrapper.py');
-            
+
             const env = { ...process.env };
-            if (this.apiKey) {
-                env.OPENAI_API_KEY = this.apiKey;
+            if (this.openaiApiKey) {
+                env.OPENAI_API_KEY = this.openaiApiKey;
+            }
+            if (this.qwenApiKey) {
+                env.QWEN_API_KEY = this.qwenApiKey;
             }
 
             const args = [scriptPath, command];

@@ -10,6 +10,7 @@ Integrate the AI-powered adult-only vacation planner directly into VS Code.
 - 📋 **Itinerary Generation** - Create detailed day-by-day plans
 - 💰 **Budget Estimates** - Accurate pricing from verified sources
 - 🔍 **Source Validation** - All recommendations verified before presentation
+- 🤖 **Multi-Provider LLM** - Choose between OpenAI (GPT-4) and Qwen (Alibaba Cloud)
 
 ## Requirements
 
@@ -76,9 +77,17 @@ Open VS Code Settings (`Ctrl+,` / `Cmd+,`) and configure:
    - **Windows:** `C:\Program Files\Python312\python.exe` or `python`
    - **Linux/Mac:** `python3` or `/usr/bin/python3`
 
-3. **Vacation Agent: OpenAI API Key** (optional)
-   - Your OpenAI API key
+3. **Vacation Agent: LLM Provider**
+   - `openai` (default) - Uses GPT-4 / GPT-3.5-turbo
+   - `qwen` - Uses Qwen-plus / Qwen-max (Alibaba Cloud DashScope)
+
+4. **Vacation Agent: OpenAI API Key** (optional)
+   - Get from: https://platform.openai.com/api-keys
    - Can also be set via environment variable `OPENAI_API_KEY`
+
+5. **Vacation Agent: Qwen API Key** (optional)
+   - Get from: https://dashscope.console.aliyun.com/
+   - Can also be set via environment variable `QWEN_API_KEY`
 
 ## Usage
 
@@ -127,7 +136,7 @@ vscode-extension/
 ├── src/
 │   ├── extension.ts                  # Main extension entry point
 │   ├── VacationAgentViewProvider.ts  # Webview provider
-│   └── PythonAgentBridge.ts          # Python process communication
+│   └── PythonAgentBridge.ts          # Python process communication (multi-provider)
 ├── out/                              # Compiled JavaScript (generated)
 │   ├── extension.js
 │   ├── VacationAgentViewProvider.js
@@ -136,7 +145,7 @@ vscode-extension/
 │   ├── chat.css                      # Chat interface styles
 │   ├── chat.js                       # Chat interface logic
 │   └── icon.svg                      # Extension icon
-├── python_wrapper.py                 # Python script wrapper
+├── python_wrapper.py                 # Python script wrapper (multi-provider)
 ├── .vscode/
 │   └── settings.json                 # Default configuration
 ├── package.json                      # Extension manifest

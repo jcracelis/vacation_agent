@@ -15,6 +15,7 @@ An AI-powered vacation planning agent specializing in **adult-only vacations** w
 - ✅ Accurate budget estimates from approved sources
 - ✅ Interactive VS Code extension with chat interface
 - ✅ Source validation - no hallucination
+- ✅ **Multi-provider LLM support** - OpenAI (GPT-4) and Qwen (Alibaba Cloud)
 
 📖 **[View Vacation Agent Documentation →](.github/agents/README.md)**
 
@@ -25,7 +26,20 @@ An AI-powered vacation planning agent specializing in **adult-only vacations** w
 | **Python** | 3.10+ | Agent backend |
 | **Node.js** | 18+ | VS Code extension build |
 | **VS Code** | 1.85+ | Extension runtime |
-| **OpenAI API Key** | Optional | LLM-powered responses |
+| **OpenAI API Key** | Optional | GPT-4 / GPT-3.5-turbo responses |
+| **Qwen API Key** | Optional | Qwen-plus / Qwen-max responses (Alibaba Cloud DashScope) |
+
+### LLM Providers
+
+The agent supports two LLM providers. Configure one or both:
+
+| Provider | Models | API Key | Endpoint |
+|----------|--------|---------|----------|
+| **OpenAI** (default) | gpt-4, gpt-4-turbo, gpt-3.5-turbo | `OPENAI_API_KEY` | OpenAI API |
+| **Qwen** | qwen-plus, qwen-max, qwen-turbo, qwen-long | `QWEN_API_KEY` | DashScope (Alibaba Cloud) |
+
+Set your preferred provider in VS Code settings (`vacationAgent.llmProvider: "openai"` or `"qwen"`).
+If both API keys are configured, **Qwen takes priority**.
 
 ### Quick Start
 
@@ -54,7 +68,18 @@ npm install
 npm run compile
 ```
 
-#### **Step 3: Launch**
+#### **Step 3: Configure API Keys**
+
+Open VS Code Settings (`Ctrl+,`) and set:
+- `vacationAgent.llmProvider`: `"openai"` or `"qwen"`
+- `vacationAgent.openaiApiKey`: Your OpenAI key (for GPT models)
+- `vacationAgent.qwenApiKey`: Your Qwen key (for Qwen models)
+
+Get your keys:
+- **OpenAI:** https://platform.openai.com/api-keys
+- **Qwen:** https://dashscope.console.aliyun.com/
+
+#### **Step 4: Launch**
 
 1. Open VS Code: `code .github/agents/vscode-extension`
 2. Press `F5` to launch Extension Development Host
@@ -72,6 +97,10 @@ vacation_agent/                    # Repository root
 │   └── agents/                    # All agents live here
 │       ├── README.md              # Vacation Agent documentation
 │       ├── src/                   # Python source code
+│       │   ├── agent.py           # Main agent (OpenAI + Qwen support)
+│       │   ├── models.py          # Data models
+│       │   ├── prompts.py         # Prompt templates
+│       │   └── utils.py           # Utility functions
 │       ├── tests/                 # Test suite
 │       ├── config/                # Configuration files
 │       ├── examples/              # Usage examples
@@ -79,6 +108,8 @@ vacation_agent/                    # Repository root
 │       ├── notebooks/             # Jupyter notebooks
 │       ├── scripts/               # Utility scripts
 │       ├── vscode-extension/      # VS Code extension
+│       │   ├── src/               # TypeScript source
+│       │   └── python_wrapper.py  # Python bridge (multi-provider)
 │       ├── validate.sh            # Validation script
 │       └── test_agent.bat         # Windows test script
 ```
@@ -93,25 +124,14 @@ To add a new agent to this repository:
    .github/agents/
    └── agent_name/
        ├── src/                     # Source code
-       │   ├── __init__.py
-       │   ├── agent.py             # Main agent logic
-       │   ├── models.py            # Data models
-       │   └── prompts.py           # Prompt templates
        ├── tests/                   # Test suite
-       │   ├── __init__.py
-       │   └── test_agent.py
        ├── config/                  # Configuration
-       │   └── settings.yaml
        ├── examples/                # Usage examples
        ├── docs/                    # Documentation
-       ├── notebooks/               # Jupyter notebooks
-       ├── scripts/                 # Utility scripts
        ├── requirements.txt         # Python dependencies
        └── README.md                # Agent documentation
    ```
-3. **Create a VS Code extension** (optional) following the `vscode-extension/` pattern
-4. **Add tests** - minimum 10 test methods recommended
-5. **Update this README** with the new agent details
+3. **Update this README** with the new agent details
 
 ### Agent Requirements
 

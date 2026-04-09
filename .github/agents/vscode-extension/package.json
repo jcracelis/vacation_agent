@@ -55,11 +55,24 @@
           "description": "Path to vacation_agent project directory",
           "order": 2
         },
+        "vacationAgent.llmProvider": {
+          "type": "string",
+          "enum": ["openai", "qwen"],
+          "default": "openai",
+          "description": "LLM provider: OpenAI or Qwen (Alibaba Cloud)",
+          "order": 3
+        },
         "vacationAgent.openaiApiKey": {
           "type": "string",
           "default": "",
           "description": "OpenAI API Key (optional, uses env var if empty)",
-          "order": 3
+          "order": 4
+        },
+        "vacationAgent.qwenApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Qwen API Key from Alibaba Cloud DashScope (optional)",
+          "order": 5
         }
       }
     }

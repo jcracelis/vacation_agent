@@ -1,0 +1,7 @@
+{
+  "vacationAgent.pythonPath": "C:\\Program Files\\Python314\\python.exe",
+  "vacationAgent.projectPath": "C:\\Users\\racel\\github\\vacation_agent\\.github\\agents",
+  "vacationAgent.llmProvider": "openai",
+  "vacationAgent.openaiApiKey": "",
+  "vacationAgent.qwenApiKey": ""
+}

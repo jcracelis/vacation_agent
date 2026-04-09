@@ -44,8 +44,9 @@ function activate(context) {
     const config = vscode.workspace.getConfiguration('vacationAgent');
     const pythonPath = config.get('pythonPath', 'python');
     const projectPath = config.get('projectPath', '');
-    const apiKey = config.get('openaiApiKey', '');
-    const bridge = new PythonAgentBridge_1.PythonAgentBridge(pythonPath, projectPath, apiKey);
+    const openaiApiKey = config.get('openaiApiKey', '');
+    const qwenApiKey = config.get('qwenApiKey', '');
+    const bridge = new PythonAgentBridge_1.PythonAgentBridge(pythonPath, projectPath, openaiApiKey, qwenApiKey);
     // Register the view provider
     const viewProvider = new VacationAgentViewProvider_1.VacationAgentViewProvider(context.extensionUri, bridge);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(VacationAgentViewProvider_1.VacationAgentViewProvider.viewType, viewProvider, { webviewOptions: { retainContextWhenHidden: true } }));
@@ -62,7 +63,7 @@ function activate(context) {
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration('vacationAgent')) {
             const newConfig = vscode.workspace.getConfiguration('vacationAgent');
-            bridge.updateConfig(newConfig.get('pythonPath', 'python'), newConfig.get('projectPath', ''), newConfig.get('openaiApiKey', ''));
+            bridge.updateConfig(newConfig.get('pythonPath', 'python'), newConfig.get('projectPath', ''), newConfig.get('openaiApiKey', ''), newConfig.get('qwenApiKey', ''));
         }
     }));
 }

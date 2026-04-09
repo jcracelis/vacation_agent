@@ -38,15 +38,17 @@ const child_process_1 = require("child_process");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 class PythonAgentBridge {
-    constructor(pythonPath, projectPath, apiKey) {
+    constructor(pythonPath, projectPath, openaiApiKey, qwenApiKey = '') {
         this.pythonPath = pythonPath;
         this.projectPath = projectPath;
-        this.apiKey = apiKey;
+        this.openaiApiKey = openaiApiKey;
+        this.qwenApiKey = qwenApiKey;
     }
-    updateConfig(pythonPath, projectPath, apiKey) {
+    updateConfig(pythonPath, projectPath, openaiApiKey, qwenApiKey = '') {
         this.pythonPath = pythonPath;
         this.projectPath = projectPath;
-        this.apiKey = apiKey;
+        this.openaiApiKey = openaiApiKey;
+        this.qwenApiKey = qwenApiKey;
     }
     async initializeAgent() {
         try {
@@ -102,8 +104,11 @@ class PythonAgentBridge {
         return new Promise((resolve) => {
             const scriptPath = path.join(__dirname, '..', 'python_wrapper.py');
             const env = { ...process.env };
-            if (this.apiKey) {
-                env.OPENAI_API_KEY = this.apiKey;
+            if (this.openaiApiKey) {
+                env.OPENAI_API_KEY = this.openaiApiKey;
+            }
+            if (this.qwenApiKey) {
+                env.QWEN_API_KEY = this.qwenApiKey;
             }
             const args = [scriptPath, command];
             if (arg) {

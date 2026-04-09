@@ -9,13 +9,14 @@ export function activate(context: vscode.ExtensionContext) {
     const config = vscode.workspace.getConfiguration('vacationAgent');
     const pythonPath = config.get<string>('pythonPath', 'python');
     const projectPath = config.get<string>('projectPath', '');
-    const apiKey = config.get<string>('openaiApiKey', '');
+    const openaiApiKey = config.get<string>('openaiApiKey', '');
+    const qwenApiKey = config.get<string>('qwenApiKey', '');
 
-    const bridge = new PythonAgentBridge(pythonPath, projectPath, apiKey);
+    const bridge = new PythonAgentBridge(pythonPath, projectPath, openaiApiKey, qwenApiKey);
 
     // Register the view provider
     const viewProvider = new VacationAgentViewProvider(context.extensionUri, bridge);
-    
+
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(
             VacationAgentViewProvider.viewType,
@@ -50,7 +51,8 @@ export function activate(context: vscode.ExtensionContext) {
                 bridge.updateConfig(
                     newConfig.get<string>('pythonPath', 'python'),
                     newConfig.get<string>('projectPath', ''),
-                    newConfig.get<string>('openaiApiKey', '')
+                    newConfig.get<string>('openaiApiKey', ''),
+                    newConfig.get<string>('qwenApiKey', '')
                 );
             }
         })
