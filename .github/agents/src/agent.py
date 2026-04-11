@@ -112,7 +112,7 @@ def _detect_provider(
 ) -> str:
     """Auto-detect the best available LLM provider.
 
-    Priority: ollama (local) > qwen > openai
+    Priority: ollama (local, default) > qwen > openai
     If a hint is provided and valid, use it.
 
     Args:
@@ -125,21 +125,18 @@ def _detect_provider(
     if provider_hint and provider_hint in LLM_PROVIDERS:
         return provider_hint
 
-    # Auto-detect: first available provider wins
+    # Auto-detect: check cloud providers for API keys first
     for provider in PROVIDER_PRIORITY:
-        config = LLM_PROVIDERS[provider]
-
-        # Ollama: always available as a local service (we check connectivity later)
         if provider == "ollama":
-            continue  # Always considered available
+            continue  # Skip Ollama here — it's the default fallback
 
-        # Cloud providers: need an API key
+        config = LLM_PROVIDERS[provider]
         api_key_env = config["api_key_env"]
         if api_key_env and os.getenv(api_key_env):
             return provider
 
-    # Default fallback
-    return "openai"
+    # Default to Ollama (local, no API key needed)
+    return "ollama"
 
 
 # ─── Main Agent Class ────────────────────────────────────────────────────────

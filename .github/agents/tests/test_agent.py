@@ -20,9 +20,9 @@ class TestVacationAgent:
     # ─── Initialization ─────────────────────────────────────────────────
 
     def test_init_default(self):
-        """Test default agent initialization."""
-        assert self.agent.model_name is not None
-        assert self.agent.provider in LLM_PROVIDERS
+        """Test default agent initialization — Ollama should be the default."""
+        assert self.agent.provider == "ollama"
+        assert self.agent.model_name == "llama3"
         assert len(self.agent.conversation_history) == 1  # system prompt only
         assert self.agent.conversation_history[0]["role"] == "system"
         assert self.agent.user_preferences == {}
@@ -135,10 +135,15 @@ class TestVacationAgent:
         assert _detect_provider("ollama") == "ollama"
         assert _detect_provider("openai") == "openai"
 
+    def test_detect_provider_no_hint_defaults_to_ollama(self):
+        """Test auto-detection defaults to Ollama when no hint is given."""
+        result = _detect_provider()
+        assert result == "ollama"
+
     def test_detect_provider_invalid_hint(self):
-        """Test invalid hint falls back to auto-detection."""
+        """Test invalid hint falls back to Ollama (the default)."""
         result = _detect_provider("invalid_provider")
-        assert result in LLM_PROVIDERS
+        assert result == "ollama"
 
     # ─── User Interaction ───────────────────────────────────────────────
 

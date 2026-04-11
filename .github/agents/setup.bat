@@ -32,7 +32,7 @@ if %errorlevel% equ 0 (
     timeout /t 2 /nobreak >nul
 ) else (
     echo  Ollama not found. Install from: https://ollama.com/download/windows
-    echo  Then run: ollama pull llama3
+    echo  Then run: ollama pull llama3:latest
 )
 
 echo.
