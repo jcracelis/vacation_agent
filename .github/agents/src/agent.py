@@ -187,16 +187,8 @@ class VacationAgent:
         """
         # Resolve provider
         self.provider = _detect_provider(provider)
-        provider_config = LLM_PROVIDERS[self.provider]
 
-        # Resolve model name
-        if model_name:
-            self.model_name = model_name
-        else:
-            # Default to first model in provider's list
-            self.model_name = provider_config["models"][0]
-
-        # Store API keys / endpoints
+        # Store API keys / endpoints (needed before model resolution for Ollama)
         self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
         self.qwen_api_key = qwen_api_key or os.getenv("QWEN_API_KEY")
         self.ollama_base_url = (
@@ -204,6 +196,16 @@ class VacationAgent:
             or os.getenv("OLLAMA_BASE_URL")
             or "http://localhost:11434"
         )
+
+        # Resolve model name
+        if model_name:
+            self.model_name = model_name
+        elif self.provider == "ollama":
+            # Auto-detect: pick the best available local Ollama model
+            self.model_name = self._resolve_ollama_model()
+        else:
+            provider_config = LLM_PROVIDERS[self.provider]
+            self.model_name = provider_config["models"][0]
 
         # Initialize conversation state
         self.conversation_history = [
@@ -289,6 +291,68 @@ class VacationAgent:
                 return resp.status == 200
         except Exception:
             return False
+
+    def _get_ollama_models(self) -> list[str]:
+        """Query Ollama for locally available models.
+
+        Returns:
+            List of model names installed in Ollama
+        """
+        try:
+            import urllib.request
+            import json as _json
+
+            url = f"{self.ollama_base_url}/api/tags"
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = _json.loads(resp.read().decode("utf-8"))
+                # Ollama returns {"models": [{"name": "llama3", ...}]}
+                return [m["name"] for m in data.get("models", [])]
+        except Exception:
+            return []
+
+    def _resolve_ollama_model(self) -> str:
+        """Find the best available Ollama model from local installations.
+
+        Checks models in preference order:
+        1. llama3 (general purpose, recommended)
+        2. mistral (fast and capable)
+        3. phi3 (lightweight, good for smaller machines)
+        4. qwen2 (great multilingual)
+        5. gemma2 (Google's model)
+        6. deepseek-r1 (reasoning model)
+        7. Any available model as last resort
+
+        Returns:
+            Best available model name, or fallback with a warning prefix
+        """
+        # Preferred model order
+        preferred = ["llama3", "mistral", "phi3", "qwen2", "gemma2", "deepseek-r1"]
+
+        installed = self._get_ollama_models()
+        logger.debug("Ollama installed models: %s", installed)
+
+        if not installed:
+            # No models found — return the default but it will fail at call time
+            logger.warning(
+                "No Ollama models found. Install one with: ollama pull llama3"
+            )
+            return "llama3"
+
+        # Try each preferred model with partial matching
+        # (Ollama may store "llama3:latest", "llama3:8b", etc.)
+        for preferred_name in preferred:
+            for installed_name in installed:
+                if installed_name.startswith(preferred_name):
+                    logger.info("Selected Ollama model: %s", installed_name)
+                    return installed_name
+
+        # No preferred model found — use the first available
+        fallback = installed[0]
+        logger.info(
+            "No preferred model found, falling back to: %s", fallback
+        )
+        return fallback
 
     # ─── LLM Communication ────────────────────────────────────────────────
 

@@ -144,7 +144,12 @@ Ollama runs LLMs locally on your machine — no API keys, no cloud costs, 100% p
    ```bash
    ollama serve              # Runs on localhost:11434
    ```
-4. **That's it!** No API key needed. The agent auto-detects Ollama and uses it by default.
+4. **That's it!** No API key needed. The agent **automatically detects** which models you have installed and picks the best one.
+
+**Model selection logic:** The agent queries your local Ollama and selects models in this order:
+`llama3` → `mistral` → `phi3` → `qwen2` → `gemma2` → `deepseek-r1` → first available
+
+You can override by specifying `model_name` in code.
 
 ### Step 6: Set API Keys (Optional — for Cloud Providers)
 

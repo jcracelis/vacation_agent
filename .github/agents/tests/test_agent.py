@@ -22,7 +22,9 @@ class TestVacationAgent:
     def test_init_default(self):
         """Test default agent initialization — Ollama should be the default."""
         assert self.agent.provider == "ollama"
-        assert self.agent.model_name == "llama3"
+        # Model is auto-detected from installed models — just verify it's a string
+        assert isinstance(self.agent.model_name, str)
+        assert len(self.agent.model_name) > 0
         assert len(self.agent.conversation_history) == 1  # system prompt only
         assert self.agent.conversation_history[0]["role"] == "system"
         assert self.agent.user_preferences == {}
@@ -36,7 +38,7 @@ class TestVacationAgent:
         assert agent.model_name == "qwen-plus"
 
     def test_init_ollama_provider(self):
-        """Test Ollama provider initialization."""
+        """Test Ollama provider initialization with explicit model."""
         agent = VacationAgent(provider="ollama", model_name="llama3")
         assert agent.provider == "ollama"
         assert agent.model_name == "llama3"
@@ -90,7 +92,7 @@ class TestVacationAgent:
 
     def test_get_base_url_ollama(self):
         """Test Ollama base URL."""
-        agent = VacationAgent(provider="ollama", ollama_base_url="http://localhost:11434")
+        agent = VacationAgent(provider="ollama", model_name="llama3")
         assert agent.get_base_url() == "http://localhost:11434/v1/chat/completions"
 
     def test_get_provider_config(self):
@@ -115,17 +117,43 @@ class TestVacationAgent:
         assert agent.is_llm_available() is True
 
     def test_is_llm_available_ollama(self):
-        """Test Ollama availability check (will be False if server not running)."""
+        """Test Ollama availability checks connectivity."""
         agent = VacationAgent(provider="ollama")
-        # This tests connectivity, not just config
+        # Result depends on whether Ollama server is actually running
         result = agent.is_llm_available()
-        # Could be True (server running) or False (server not running) — both valid
         assert isinstance(result, bool)
+
+    def test_is_llm_available_ollama_with_model(self):
+        """Test Ollama auto-selects a model when server is running."""
+        # This test verifies the model resolution logic doesn't crash
+        agent = VacationAgent(provider="ollama")
+        assert isinstance(agent.model_name, str)
+        assert len(agent.model_name) > 0
 
     def test_check_ollama_alive_not_running(self):
         """Test Ollama connectivity check returns False when server is down."""
         agent = VacationAgent(provider="ollama", ollama_base_url="http://localhost:99999")
         assert agent._check_ollama_alive() is False
+
+    def test_get_ollama_models_empty(self):
+        """Test getting Ollama models when none are available."""
+        agent = VacationAgent(provider="ollama", ollama_base_url="http://localhost:99999")
+        models = agent._get_ollama_models()
+        assert models == []
+
+    def test_resolve_ollama_model_no_models(self):
+        """Test model resolution when no models are installed."""
+        agent = VacationAgent(provider="ollama", ollama_base_url="http://localhost:99999")
+        # Falls back to llama3 default when nothing is installed
+        model = agent._resolve_ollama_model()
+        assert model == "llama3"
+
+    def test_init_ollama_auto_model_selection(self):
+        """Test that Ollama auto-selects a model from installed ones."""
+        agent = VacationAgent(provider="ollama")
+        # Should have picked something (either installed or fallback to llama3)
+        assert isinstance(agent.model_name, str)
+        assert len(agent.model_name) > 0
 
     # ─── Provider Auto-Detection ─────────────────────────────────────────
 
