@@ -42,10 +42,13 @@ messageInput.addEventListener('input', () => {
 // Handle messages from extension
 window.addEventListener('message', (event) => {
     const message = event.data;
-    
+
     switch (message.command) {
         case 'addMessage':
             addMessageToUI(message.role, message.content, message.isTyping);
+            break;
+        case 'updateTyping':
+            updateTypingMessage(message.content);
             break;
         case 'removeTyping':
             removeTypingIndicator();
@@ -77,6 +80,14 @@ function removeTypingIndicator() {
     if (typingIndicator && typingIndicator.parentNode) {
         typingIndicator.parentNode.removeChild(typingIndicator);
         typingIndicator = null;
+    }
+}
+
+// Update the text of the current typing indicator
+function updateTypingMessage(text) {
+    if (typingIndicator) {
+        typingIndicator.innerHTML = formatMessage(text);
+        scrollToBottom();
     }
 }
 

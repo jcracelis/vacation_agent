@@ -77,10 +77,10 @@ class VacationAgentViewProvider {
     }
     async handleUserMessage(text) {
         this.addMessage('user', text);
-        // Show typing indicator
-        this.addMessage('assistant', '⏳ Thinking...', true);
+        // Show thinking indicator with rotating quotes
+        await this.showThinkingWithQuotes();
         const response = await this.bridge.sendMessage(text);
-        // Remove typing indicator
+        // Remove thinking indicator
         this.removeTypingIndicator();
         if (response.success) {
             this.addMessage('assistant', response.message);
@@ -88,6 +88,33 @@ class VacationAgentViewProvider {
         else {
             this.addMessage('assistant', `⚠️ Error: ${response.message}`);
         }
+    }
+    /** Show a thinking indicator that cycles through travel quotes. */
+    async showThinkingWithQuotes() {
+        const quotes = [
+            '🌴 "The world is a book..."',
+            '✈️ "Travel makes one modest..."',
+            '🏖️ "Life is either a daring adventure..."',
+            '🗺️ "Not all those who wander are lost..."',
+            '🌊 "The sea cures everything..."',
+            '🌅 "Jobs fill your pockets, adventures fill your soul..."',
+            '🧳 "Travel is the only thing you buy that makes you richer..."',
+            '🌍 "Once a year, go someplace you\'ve never been before..."',
+        ];
+        // Show first quote immediately
+        this.addMessage('assistant', quotes[0], true);
+        // Rotate through remaining quotes every 2 seconds
+        for (let i = 1; i < quotes.length; i++) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            this.updateThinkingMessage(quotes[i]);
+        }
+    }
+    /** Update the text of the current thinking indicator. */
+    updateThinkingMessage(text) {
+        this.postMessageToWebview({
+            command: 'updateTyping',
+            content: text
+        });
     }
     async handleStartPlanning() {
         this.clearChat();

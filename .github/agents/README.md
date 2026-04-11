@@ -278,6 +278,62 @@ agents/
 └── test_agent.bat              # Windows test script
 ```
 
+## How the LLM Generates Responses
+
+### With Ollama (Local)
+
+When you send a message, here's what happens:
+
+```
+You type: "I want a beach vacation for 7 days"
+          ↓
+VS Code Extension (TypeScript)
+  → Spawns python_wrapper.py as a subprocess
+  → Passes your message via command-line argument
+          ↓
+Python VacationAgent
+  → Wraps your message in the conversation history
+  → Sends a POST request to http://localhost:11434/v1/chat/conversations
+  → Payload: { model: "llama3", messages: [...], temperature: 0.7 }
+          ↓
+Ollama Server (Local)
+  → Loads the llama3 model into memory
+  → Processes your prompt through the neural network
+  → Generates token-by-token response
+  → Returns JSON: { choices: [{ message: { content: "..." } }] }
+          ↓
+Python VacationAgent
+  → Parses the response
+  → Validates any cited sources against approved domains
+  → Returns formatted text back to VS Code
+          ↓
+VS Code Extension
+  → Displays the response in the chat panel
+```
+
+**Key points about Ollama:**
+- **Runs locally** on your machine — no data leaves your computer
+- **No API key or internet** required after model download
+- **Model stored** in `~/.ollama/models/` (typically 4–8 GB for llama3)
+- **Response time** depends on your hardware (faster with GPU)
+- **Privacy**: Your vacation preferences never leave your device
+
+### With Cloud Providers (OpenAI / Qwen)
+
+The flow is identical except:
+- Request goes to `api.openai.com` or `dashscope.aliyuncs.com`
+- Requires a valid API key
+- Data is sent to the cloud provider's servers
+- Response time is typically faster than local Ollama
+
+### Source Verification
+
+Every response is grounded in the agent's system prompt which requires:
+- Destination reviews must cite tripadvisor.com
+- Flight info must come from aa.com, southwest.com, or delta.com
+- Rail info must come from amtrak.com
+- The LLM is instructed: "DO NOT hallucinate information"
+
 ## Troubleshooting
 
 ### "Python not found"

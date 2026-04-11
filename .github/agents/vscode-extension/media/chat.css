@@ -61,8 +61,14 @@ body {
 }
 
 .message.typing {
-    opacity: 0.6;
+    opacity: 0.8;
     font-style: italic;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
 }
 
 .message strong {
